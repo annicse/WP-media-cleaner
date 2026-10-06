@@ -1,6 +1,6 @@
 <?php
 
-namespace StemAgency\Sia;
+namespace ImrulHasan\WPMC;
 
 /**
  * Inverted scanner: builds an index of all referenced image IDs from the DB once,
@@ -34,7 +34,7 @@ final class Scanner
     /**
      * Usage rows found since the last persistIndexToDatabase() call, awaiting write.
      * Kept separate from $usedIndex (which stays fully populated for the in-memory
-     * scan path) so buildIndex() can flush progress to sia_usage incrementally
+     * scan path) so buildIndex() can flush progress to wpmc_usage incrementally
      * without losing the in-memory index used by scanBatch() in the same request.
      *
      * @var list<array{attachment_id: int, post_id: int, type: string}>
@@ -53,7 +53,7 @@ final class Scanner
      * meta (_edit_last, _wpml_media_duplicate, etc.) hold small numeric values
      * that are NOT attachment IDs and would cause false "used" matches if
      * included blindly. These specific keys are safe, well-known exceptions.
-     * Extend via the `sia_known_underscore_image_meta_keys` filter.
+     * Extend via the `wpmc_known_underscore_image_meta_keys` filter.
      */
     private const KNOWN_UNDERSCORE_IMAGE_META_KEYS = [
         '_yoast_wpseo_opengraph-image-id',
@@ -64,7 +64,7 @@ final class Scanner
      * Build the full usage index from the database (featured, content, ACF, options, etc.).
      * Call once per scan before processing batches.
      *
-     * Flushes to sia_usage after each stage (via persistIndexToDatabase()) so a
+     * Flushes to wpmc_usage after each stage (via persistIndexToDatabase()) so a
      * crash/timeout partway through a large scan doesn't discard everything
      * already found — only what hasn't been reached yet is at risk.
      */
@@ -157,7 +157,7 @@ final class Scanner
     }
 
     /**
-     * Flush usage rows found since the last call to sia_usage, in batched
+     * Flush usage rows found since the last call to wpmc_usage, in batched
      * multi-row INSERTs, so async batch jobs can use them via hasUsage().
      *
      * Safe to call repeatedly (including mid-buildIndex()): only rows added
@@ -253,7 +253,7 @@ final class Scanner
 
     /**
      * Process a batch of attachment IDs against the built index.
-     * If index was built in this request, uses in-memory index; otherwise relies on sia_usage.
+     * If index was built in this request, uses in-memory index; otherwise relies on wpmc_usage.
      *
      * @param int[] $attachmentIds
      * @param bool  $deep Extra per-image URL LIKE fallback (CLI --deep). Prefer inverted URL index.
@@ -279,7 +279,7 @@ final class Scanner
                     Database::markResult($id, 'unused', $fileSize);
                 }
             } else {
-                // Async path: index was persisted to sia_usage by build-index action
+                // Async path: index was persisted to wpmc_usage by build-index action
                 if (Database::hasUsage($id)) {
                     Database::markResult($id, 'used', $fileSize);
                 } else {
@@ -690,7 +690,7 @@ final class Scanner
     {
         global $wpdb;
 
-        $keys = apply_filters('sia_known_underscore_image_meta_keys', self::KNOWN_UNDERSCORE_IMAGE_META_KEYS);
+        $keys = apply_filters('wpmc_known_underscore_image_meta_keys', self::KNOWN_UNDERSCORE_IMAGE_META_KEYS);
         $keys = array_values(array_filter(array_map('strval', (array) $keys)));
 
         if (empty($keys)) {
@@ -723,11 +723,11 @@ final class Scanner
      * Framework's "autodescription-site-settings" holds `homepage_social_image_id`
      * and `knowledge_logo_id`. These don't match indexOptions()'s "widget_" or
      * "theme_mods_" patterns, or indexAcfOptions()'s "options_" pattern, so
-     * they're otherwise invisible to the scanner. Extend via `sia_seo_plugin_option_sources`.
+     * they're otherwise invisible to the scanner. Extend via `wpmc_seo_plugin_option_sources`.
      */
     private static function indexSeoPluginOptions(): void
     {
-        $sources = apply_filters('sia_seo_plugin_option_sources', [
+        $sources = apply_filters('wpmc_seo_plugin_option_sources', [
             'autodescription-site-settings' => ['homepage_social_image_id', 'knowledge_logo_id'],
         ]);
 

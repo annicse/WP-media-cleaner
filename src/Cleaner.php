@@ -1,6 +1,6 @@
 <?php
 
-namespace StemAgency\Sia;
+namespace ImrulHasan\WPMC;
 
 final class Cleaner
 {
@@ -10,7 +10,7 @@ final class Cleaner
     public static function backupDir(): string
     {
         $uploadDir = wp_upload_dir();
-        return trailingslashit($uploadDir['basedir']) . 'sia-backups';
+        return trailingslashit($uploadDir['basedir']) . 'wpmc-backups';
     }
 
     /**
@@ -27,7 +27,7 @@ final class Cleaner
 
         $result = wp_trash_post($attachmentId);
         if ($result) {
-            update_post_meta($attachmentId, '_sia_trashed', '1');
+            update_post_meta($attachmentId, '_wpmc_trashed', '1');
             Database::setResultStatus($attachmentId, 'deleted');
             return true;
         }
@@ -45,7 +45,7 @@ final class Cleaner
 
         $result = wp_delete_attachment($attachmentId, true);
         if ($result) {
-            delete_post_meta($attachmentId, '_sia_trashed');
+            delete_post_meta($attachmentId, '_wpmc_trashed');
             Database::setResultStatus($attachmentId, 'deleted');
             return true;
         }
@@ -53,29 +53,29 @@ final class Cleaner
     }
 
     /**
-     * Stats for SIA recovery storage (deletion log + backup folders).
+     * Stats for WPMC recovery storage (deletion log + backup folders).
      *
      * @return array{log_rows: int, backup_dirs: int, backup_bytes: int}
      */
     public static function getRecoveryStoreStats(): array
     {
         $baseDir = self::backupDir();
-        $dirs    = (is_dir($baseDir) ? (glob($baseDir . '/*', GLOB_ONLYDIR) ?: []) : []);
-        $bytes   = 0;
+        $dirs = (is_dir($baseDir) ? (glob($baseDir . '/*', GLOB_ONLYDIR) ?: []) : []);
+        $bytes = 0;
 
         foreach ($dirs as $dir) {
             $bytes += self::directorySize($dir);
         }
 
         return [
-            'log_rows'     => Database::countAllDeletions(),
-            'backup_dirs'  => count($dirs),
+            'log_rows' => Database::countAllDeletions(),
+            'backup_dirs' => count($dirs),
             'backup_bytes' => $bytes,
         ];
     }
 
     /**
-     * Wipe sia_deleted rows and all files under uploads/sia-backups/.
+     * Wipe wpmc_deleted rows and all files under uploads/wpmc-backups/.
      *
      * @return array{log_rows: int, backup_dirs: int}
      */
@@ -96,7 +96,7 @@ final class Cleaner
         }
 
         return [
-            'log_rows'    => $stats['log_rows'],
+            'log_rows' => $stats['log_rows'],
             'backup_dirs' => $removed,
         ];
     }
@@ -124,7 +124,7 @@ final class Cleaner
 
     /**
      * Remove rows in external tables that FK-reference the attachment.
-     * The legacy Stem Image Analyzer table blocks DELETE on wp_posts otherwise.
+     * The legacy stem_image_analyzer table blocks DELETE on wp_posts otherwise.
      */
     private static function releaseExternalReferences(int $attachmentId): void
     {
@@ -141,7 +141,7 @@ final class Cleaner
          * @param array<string, string> $tables Map of table => column.
          * @param int                   $attachmentId
          */
-        $tables = apply_filters('sia_attachment_reference_tables', $tables, $attachmentId);
+        $tables = apply_filters('wpmc_attachment_reference_tables', $tables, $attachmentId);
 
         foreach ($tables as $table => $column) {
             if (!is_string($table) || !is_string($column) || $table === '' || $column === '') {
@@ -205,7 +205,7 @@ final class Cleaner
         $metadata = wp_get_attachment_metadata($attachmentId);
         $fileSize = ($mainFile && file_exists($mainFile)) ? (int) filesize($mainFile) : 0;
 
-        $date      = current_time('Y-m-d');
+        $date = current_time('Y-m-d');
         $backupDir = self::backupDir() . "/{$date}/{$attachmentId}";
 
         wp_mkdir_p($backupDir);
@@ -235,28 +235,28 @@ final class Cleaner
 
         foreach ($usageRows as $row) {
             $postId = (int) $row['used_in_post_id'];
-            $url    = $postId > 0 ? get_permalink($postId) : '';
+            $url = $postId > 0 ? get_permalink($postId) : '';
 
             $usedInPosts[] = [
-                'post_id'    => $postId,
-                'title'      => $row['post_title'] ?? '',
-                'url'        => $url ?: '',
-                'post_type'  => $row['post_type'] ?? '',
+                'post_id' => $postId,
+                'title' => $row['post_title'] ?? '',
+                'url' => $url ?: '',
+                'post_type' => $row['post_type'] ?? '',
                 'usage_type' => $row['usage_type'],
             ];
         }
 
         $manifest = [
-            'attachment_id'  => $attachmentId,
-            'post_title'     => $post->post_title,
+            'attachment_id' => $attachmentId,
+            'post_title' => $post->post_title,
             'post_mime_type' => $post->post_mime_type,
-            'original_path'  => $mainFile ? str_replace(ABSPATH, '', $mainFile) : '',
-            'file_size'      => $fileSize,
-            'metadata'       => $metadata ?: [],
+            'original_path' => $mainFile ? str_replace(ABSPATH, '', $mainFile) : '',
+            'file_size' => $fileSize,
+            'metadata' => $metadata ?: [],
             'backed_up_files' => $copiedFiles,
-            'used_in_posts'  => $usedInPosts,
-            'deleted_at'     => current_time('mysql'),
-            'deleted_by'     => get_current_user_id(),
+            'used_in_posts' => $usedInPosts,
+            'deleted_at' => current_time('mysql'),
+            'deleted_by' => get_current_user_id(),
         ];
 
         file_put_contents(
@@ -306,12 +306,12 @@ final class Cleaner
         }
 
         $originalAbsPath = ABSPATH . $originalRelPath;
-        $originalDir     = dirname($originalAbsPath);
+        $originalDir = dirname($originalAbsPath);
 
         wp_mkdir_p($originalDir);
 
         $mainBasename = basename($originalAbsPath);
-        $backupMain   = $backupDir . '/' . $mainBasename;
+        $backupMain = $backupDir . '/' . $mainBasename;
         if (file_exists($backupMain)) {
             copy($backupMain, $originalAbsPath);
         } else {
@@ -323,7 +323,7 @@ final class Cleaner
                 if ($file === $mainBasename) {
                     continue;
                 }
-                $src  = $backupDir . '/' . $file;
+                $src = $backupDir . '/' . $file;
                 $dest = $originalDir . '/' . $file;
                 if (file_exists($src)) {
                     copy($src, $dest);
@@ -337,10 +337,10 @@ final class Cleaner
 
         $newAttachmentId = wp_insert_attachment(
             [
-                'post_title'     => $manifest['post_title'] ?? '',
+                'post_title' => $manifest['post_title'] ?? '',
                 'post_mime_type' => $manifest['post_mime_type'] ?? '',
-                'post_status'    => 'inherit',
-                'guid'           => trailingslashit($uploadDir['baseurl']) . $relToUploads,
+                'post_status' => 'inherit',
+                'guid' => trailingslashit($uploadDir['baseurl']) . $relToUploads,
             ],
             $originalAbsPath
         );
@@ -367,16 +367,16 @@ final class Cleaner
      */
     public static function cleanupOldBackups(): int
     {
-        $retentionDays = (int) get_option('sia_backup_retention_days', 90);
-        $baseDir       = self::backupDir();
-        $removed       = 0;
+        $retentionDays = (int) get_option('wpmc_backup_retention_days', 90);
+        $baseDir = self::backupDir();
+        $removed = 0;
 
         if (!is_dir($baseDir)) {
             return 0;
         }
 
         $cutoff = strtotime("-{$retentionDays} days");
-        $dirs   = glob($baseDir . '/*', GLOB_ONLYDIR);
+        $dirs = glob($baseDir . '/*', GLOB_ONLYDIR);
 
         if (!$dirs) {
             return 0;

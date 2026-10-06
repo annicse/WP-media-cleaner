@@ -1,10 +1,10 @@
 <?php
 
-namespace StemAgency\Sia\Admin;
+namespace ImrulHasan\WPMC\Admin;
 
-use StemAgency\Sia\Database;
-use StemAgency\Sia\BackgroundJob;
-use StemAgency\Sia\Cleaner;
+use ImrulHasan\WPMC\Database;
+use ImrulHasan\WPMC\BackgroundJob;
+use ImrulHasan\WPMC\Cleaner;
 
 final class AdminPage
 {
@@ -17,25 +17,25 @@ final class AdminPage
     public function addMenuPage(): void
     {
         add_management_page(
-            'SIA — Image Cleanup',
-            'SIA',
+            'WP Media Cleaner',
+            'Media Cleaner',
             'manage_options',
-            'sia',
+            'wpmc',
             [$this, 'renderPage']
         );
     }
 
     public function enqueueAssets(string $hook): void
     {
-        if ($hook !== 'tools_page_sia') {
+        if ($hook !== 'tools_page_wpmc') {
             return;
         }
 
-        wp_enqueue_style('sia-admin', SIA_URL . 'assets/admin.css', [], SIA_VERSION);
-        wp_enqueue_script('sia-admin', SIA_URL . 'assets/admin.js', ['jquery'], SIA_VERSION, true);
-        wp_localize_script('sia-admin', 'siaAdmin', [
+        wp_enqueue_style('wpmc-admin', WPMC_URL . 'assets/admin.css', [], WPMC_VERSION);
+        wp_enqueue_script('wpmc-admin', WPMC_URL . 'assets/admin.js', ['jquery'], WPMC_VERSION, true);
+        wp_localize_script('wpmc-admin', 'wpmcAdmin', [
             'ajaxUrl' => admin_url('admin-ajax.php'),
-            'nonce'   => wp_create_nonce('sia_admin'),
+            'nonce'   => wp_create_nonce('wpmc_admin'),
         ]);
     }
 
@@ -48,12 +48,12 @@ final class AdminPage
         $tab = sanitize_text_field($_GET['tab'] ?? 'unused');
 
         ?>
-        <div class="wrap sia-wrap">
-            <h1>SIA — Image Cleanup</h1>
+        <div class="wrap wpmc-wrap">
+            <h1>WP Media Cleaner</h1>
 
             <?php $this->renderTabs($tab); ?>
 
-            <div class="sia-content">
+            <div class="wpmc-content">
                 <?php
                 switch ($tab) {
                     case 'large':
@@ -91,16 +91,16 @@ final class AdminPage
         echo '<nav class="nav-tab-wrapper">';
         foreach ($tabs as $slug => $label) {
             $class = ($active === $slug) ? 'nav-tab nav-tab-active' : 'nav-tab';
-            $url   = admin_url("tools.php?page=sia&tab={$slug}");
+            $url   = admin_url("tools.php?page=wpmc&tab={$slug}");
             $badge = '';
             if ($slug === 'unused' && $unusedCount > 0) {
-                $badge = " <span class='sia-badge'>{$unusedCount}</span>";
+                $badge = " <span class='wpmc-badge'>{$unusedCount}</span>";
             }
             if ($slug === 'large' && $largeCount > 0) {
-                $badge = " <span class='sia-badge'>{$largeCount}</span>";
+                $badge = " <span class='wpmc-badge'>{$largeCount}</span>";
             }
             if ($slug === 'deleted' && $deletedCount > 0) {
-                $badge = " <span class='sia-badge sia-badge-info'>{$deletedCount}</span>";
+                $badge = " <span class='wpmc-badge wpmc-badge-info'>{$deletedCount}</span>";
             }
             echo "<a href='{$url}' class='{$class}'>{$label}{$badge}</a>";
         }
@@ -109,26 +109,26 @@ final class AdminPage
 
     private function renderUnusedTab(): void
     {
-        $status   = get_option('sia_scan_status', 'idle');
-        $lastScan = get_option('sia_last_scan', '');
+        $status   = get_option('wpmc_scan_status', 'idle');
+        $lastScan = get_option('wpmc_last_scan', '');
 
-        echo '<div class="sia-toolbar">';
-        echo '<div class="sia-toolbar-left">';
+        echo '<div class="wpmc-toolbar">';
+        echo '<div class="wpmc-toolbar-left">';
         if ($status === 'scanning' && !BackgroundJob::isScanStale()) {
-            echo '<span class="sia-status scanning">Scan in progress&hellip;</span>';
+            echo '<span class="wpmc-status scanning">Scan in progress&hellip;</span>';
         } else {
             if ($status === 'scanning') {
-                echo '<span class="sia-status sia-status-stale">Previous scan appears stuck — starting a new one will reset it.</span> ';
+                echo '<span class="wpmc-status wpmc-status-stale">Previous scan appears stuck — starting a new one will reset it.</span> ';
             }
-            echo '<button class="button button-primary" id="sia-start-scan">Run Scan Now</button>';
+            echo '<button class="button button-primary" id="wpmc-start-scan">Run Scan Now</button>';
         }
         if ($lastScan) {
-            echo '<span class="sia-last-scan">Last scan: ' . esc_html($lastScan) . '</span>';
+            echo '<span class="wpmc-last-scan">Last scan: ' . esc_html($lastScan) . '</span>';
         }
         echo '</div>';
-        echo '<div class="sia-toolbar-right">';
-        echo '<button class="button" id="sia-bulk-trash" disabled>Trash Selected</button> ';
-        echo '<button class="button" id="sia-bulk-dismiss" disabled>Dismiss Selected</button>';
+        echo '<div class="wpmc-toolbar-right">';
+        echo '<button class="button" id="wpmc-bulk-trash" disabled>Trash Selected</button> ';
+        echo '<button class="button" id="wpmc-bulk-dismiss" disabled>Dismiss Selected</button>';
         echo '</div>';
         echo '</div>';
 
@@ -139,7 +139,7 @@ final class AdminPage
         $pages   = (int) ceil($total / $perPage);
 
         if (empty($images)) {
-            echo '<div class="sia-empty">';
+            echo '<div class="wpmc-empty">';
             if ($lastScan) {
                 echo '<p>No unused images found. Your media library is clean.</p>';
             } else {
@@ -149,10 +149,10 @@ final class AdminPage
             return;
         }
 
-        echo '<table class="wp-list-table widefat fixed striped sia-table">';
+        echo '<table class="wp-list-table widefat fixed striped wpmc-table">';
         echo '<thead><tr>';
-        echo '<th class="check-column"><input type="checkbox" id="sia-select-all" /></th>';
-        echo '<th class="sia-col-thumb">Thumbnail</th>';
+        echo '<th class="check-column"><input type="checkbox" id="wpmc-select-all" /></th>';
+        echo '<th class="wpmc-col-thumb">Thumbnail</th>';
         echo '<th>Filename</th>';
         echo '<th>Type</th>';
         echo '<th>Size</th>';
@@ -167,14 +167,14 @@ final class AdminPage
             $size  = $img->file_size ? size_format($img->file_size) : '—';
 
             echo '<tr data-id="' . (int) $img->attachment_id . '">';
-            echo '<td class="check-column"><input type="checkbox" class="sia-check" value="' . (int) $img->attachment_id . '" /></td>';
-            echo "<td class='sia-col-thumb'>{$thumb}</td>";
+            echo '<td class="check-column"><input type="checkbox" class="wpmc-check" value="' . (int) $img->attachment_id . '" /></td>';
+            echo "<td class='wpmc-col-thumb'>{$thumb}</td>";
             echo "<td><strong>{$title}</strong><br><small>ID: {$img->attachment_id}</small></td>";
             echo "<td>{$mime}</td>";
             echo "<td>{$size}</td>";
             echo '<td>';
-            echo '<button class="button button-small sia-trash-one" data-id="' . (int) $img->attachment_id . '">Trash</button> ';
-            echo '<button class="button button-small sia-dismiss-one" data-id="' . (int) $img->attachment_id . '">Dismiss</button>';
+            echo '<button class="button button-small wpmc-trash-one" data-id="' . (int) $img->attachment_id . '">Trash</button> ';
+            echo '<button class="button button-small wpmc-dismiss-one" data-id="' . (int) $img->attachment_id . '">Dismiss</button>';
             echo '</td>';
             echo '</tr>';
         }
@@ -195,25 +195,25 @@ final class AdminPage
 
     private function renderLargeFilesTab(): void
     {
-        $threshold = (int) get_option('sia_large_threshold', 512000);
+        $threshold = (int) get_option('wpmc_large_threshold', 512000);
         $page      = max(1, (int) ($_GET['paged'] ?? 1));
         $perPage   = 20;
         $total     = Database::countLargeFiles();
         $files     = Database::getLargeFiles($perPage, $page);
         $pages     = (int) ceil($total / $perPage);
 
-        echo '<div class="sia-toolbar"><div class="sia-toolbar-left">';
-        echo '<p>Images larger than <strong>' . size_format($threshold) . '</strong>. Change threshold in <a href="' . admin_url('tools.php?page=sia&tab=settings') . '">Settings</a>.</p>';
+        echo '<div class="wpmc-toolbar"><div class="wpmc-toolbar-left">';
+        echo '<p>Images larger than <strong>' . size_format($threshold) . '</strong>. Change threshold in <a href="' . admin_url('tools.php?page=wpmc&tab=settings') . '">Settings</a>.</p>';
         echo '</div></div>';
 
         if (empty($files)) {
-            echo '<div class="sia-empty"><p>No large files found.</p></div>';
+            echo '<div class="wpmc-empty"><p>No large files found.</p></div>';
             return;
         }
 
-        echo '<table class="wp-list-table widefat fixed striped sia-table">';
+        echo '<table class="wp-list-table widefat fixed striped wpmc-table">';
         echo '<thead><tr>';
-        echo '<th class="sia-col-thumb">Thumbnail</th>';
+        echo '<th class="wpmc-col-thumb">Thumbnail</th>';
         echo '<th>Filename</th>';
         echo '<th>Type</th>';
         echo '<th>Dimensions</th>';
@@ -231,7 +231,7 @@ final class AdminPage
             $edit  = get_edit_post_link((int) $f->attachment_id);
 
             echo '<tr>';
-            echo "<td class='sia-col-thumb'>{$thumb}</td>";
+            echo "<td class='wpmc-col-thumb'>{$thumb}</td>";
             echo "<td><strong>{$title}</strong><br><small>ID: {$f->attachment_id}</small></td>";
             echo "<td>{$mime}</td>";
             echo "<td>{$dims}</td>";
@@ -261,21 +261,21 @@ final class AdminPage
         $total     = Database::countDeletions();
         $deletions = Database::getDeletions($perPage, $page);
         $pages     = (int) ceil($total / $perPage);
-        $retention = (int) get_option('sia_backup_retention_days', 90);
+        $retention = (int) get_option('wpmc_backup_retention_days', 90);
 
-        echo '<div class="sia-toolbar"><div class="sia-toolbar-left">';
-        echo '<p>Images deleted by SIA. Backups are kept for <strong>' . $retention . ' days</strong>. ';
+        echo '<div class="wpmc-toolbar"><div class="wpmc-toolbar-left">';
+        echo '<p>Images deleted by WP Media Cleaner. Backups are kept for <strong>' . $retention . ' days</strong>. ';
         echo 'Click a post link to verify nothing is broken, then restore if needed.</p>';
         echo '</div></div>';
 
         if (empty($deletions)) {
-            echo '<div class="sia-empty"><p>No deleted images to show.</p></div>';
+            echo '<div class="wpmc-empty"><p>No deleted images to show.</p></div>';
             return;
         }
 
-        echo '<table class="wp-list-table widefat fixed striped sia-table">';
+        echo '<table class="wp-list-table widefat fixed striped wpmc-table">';
         echo '<thead><tr>';
-        echo '<th class="sia-col-thumb">Thumb</th>';
+        echo '<th class="wpmc-col-thumb">Thumb</th>';
         echo '<th>Image</th>';
         echo '<th>Size</th>';
         echo '<th>Referenced In</th>';
@@ -331,13 +331,13 @@ final class AdminPage
             }
 
             echo '<tr data-id="' . (int) $d->attachment_id . '">';
-            echo "<td class='sia-col-thumb'>{$thumbHtml}</td>";
+            echo "<td class='wpmc-col-thumb'>{$thumbHtml}</td>";
             echo "<td><strong>{$title}</strong><br><small>ID: {$d->attachment_id}</small><br><small>" . esc_html($d->mime_type) . "</small></td>";
             echo "<td>{$size}</td>";
             echo "<td>{$postsHtml}</td>";
             echo "<td>{$date}<br><small>by {$by}</small></td>";
             echo '<td>';
-            echo '<button class="button button-small sia-restore-one" data-id="' . (int) $d->attachment_id . '">Restore</button>';
+            echo '<button class="button button-small wpmc-restore-one" data-id="' . (int) $d->attachment_id . '">Restore</button>';
             echo '</td>';
             echo '</tr>';
         }
@@ -358,16 +358,16 @@ final class AdminPage
 
     private function renderSettingsTab(): void
     {
-        if ($_SERVER['REQUEST_METHOD'] === 'POST' && check_admin_referer('sia_settings')) {
-            $threshold = max(0, (int) ($_POST['sia_large_threshold'] ?? 512000));
-            $schedule  = sanitize_text_field($_POST['sia_scan_schedule'] ?? 'monthly');
-            $batch     = max(10, min(500, (int) ($_POST['sia_batch_size'] ?? 100)));
-            $retention = max(7, (int) ($_POST['sia_backup_retention_days'] ?? 90));
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && check_admin_referer('wpmc_settings')) {
+            $threshold = max(0, (int) ($_POST['wpmc_large_threshold'] ?? 512000));
+            $schedule  = sanitize_text_field($_POST['wpmc_scan_schedule'] ?? 'monthly');
+            $batch     = max(10, min(500, (int) ($_POST['wpmc_batch_size'] ?? 100)));
+            $retention = max(7, (int) ($_POST['wpmc_backup_retention_days'] ?? 90));
 
-            update_option('sia_large_threshold', $threshold);
-            update_option('sia_scan_schedule', $schedule);
-            update_option('sia_batch_size', $batch);
-            update_option('sia_backup_retention_days', $retention);
+            update_option('wpmc_large_threshold', $threshold);
+            update_option('wpmc_scan_schedule', $schedule);
+            update_option('wpmc_batch_size', $batch);
+            update_option('wpmc_backup_retention_days', $retention);
 
             BackgroundJob::unscheduleAll();
             BackgroundJob::scheduleRecurring();
@@ -375,27 +375,27 @@ final class AdminPage
             echo '<div class="notice notice-success"><p>Settings saved.</p></div>';
         }
 
-        $threshold = (int) get_option('sia_large_threshold', 512000);
-        $schedule  = get_option('sia_scan_schedule', 'monthly');
-        $batch     = (int) get_option('sia_batch_size', 100);
-        $retention = (int) get_option('sia_backup_retention_days', 90);
+        $threshold = (int) get_option('wpmc_large_threshold', 512000);
+        $schedule  = get_option('wpmc_scan_schedule', 'monthly');
+        $batch     = (int) get_option('wpmc_batch_size', 100);
+        $retention = (int) get_option('wpmc_backup_retention_days', 90);
 
         ?>
         <form method="post">
-            <?php wp_nonce_field('sia_settings'); ?>
+            <?php wp_nonce_field('wpmc_settings'); ?>
             <table class="form-table">
                 <tr>
-                    <th><label for="sia_large_threshold">Large file threshold</label></th>
+                    <th><label for="wpmc_large_threshold">Large file threshold</label></th>
                     <td>
-                        <input type="number" id="sia_large_threshold" name="sia_large_threshold"
+                        <input type="number" id="wpmc_large_threshold" name="wpmc_large_threshold"
                                value="<?php echo esc_attr($threshold); ?>" min="0" step="1024" class="regular-text" />
                         <p class="description">In bytes. Default: 512000 (500 KB). Files above this size appear in the Large Files tab.</p>
                     </td>
                 </tr>
                 <tr>
-                    <th><label for="sia_scan_schedule">Auto-scan schedule</label></th>
+                    <th><label for="wpmc_scan_schedule">Auto-scan schedule</label></th>
                     <td>
-                        <select id="sia_scan_schedule" name="sia_scan_schedule">
+                        <select id="wpmc_scan_schedule" name="wpmc_scan_schedule">
                             <option value="weekly" <?php selected($schedule, 'weekly'); ?>>Weekly</option>
                             <option value="monthly" <?php selected($schedule, 'monthly'); ?>>Monthly</option>
                             <option value="off" <?php selected($schedule, 'off'); ?>>Off (manual only)</option>
@@ -403,17 +403,17 @@ final class AdminPage
                     </td>
                 </tr>
                 <tr>
-                    <th><label for="sia_batch_size">Batch size</label></th>
+                    <th><label for="wpmc_batch_size">Batch size</label></th>
                     <td>
-                        <input type="number" id="sia_batch_size" name="sia_batch_size"
+                        <input type="number" id="wpmc_batch_size" name="wpmc_batch_size"
                                value="<?php echo esc_attr($batch); ?>" min="10" max="500" class="small-text" />
                         <p class="description">Images processed per background batch. Lower = less server load. Range: 10–500.</p>
                     </td>
                 </tr>
                 <tr>
-                    <th><label for="sia_backup_retention_days">Backup retention</label></th>
+                    <th><label for="wpmc_backup_retention_days">Backup retention</label></th>
                     <td>
-                        <input type="number" id="sia_backup_retention_days" name="sia_backup_retention_days"
+                        <input type="number" id="wpmc_backup_retention_days" name="wpmc_backup_retention_days"
                                value="<?php echo esc_attr($retention); ?>" min="7" max="365" class="small-text" /> days
                         <p class="description">How long to keep file backups of deleted images. The deletion log is kept forever. Default: 90 days.</p>
                     </td>

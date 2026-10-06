@@ -1,19 +1,19 @@
 <?php
 
-namespace StemAgency\Sia\Admin;
+namespace ImrulHasan\WPMC\Admin;
 
-use StemAgency\Sia\BackgroundJob;
-use StemAgency\Sia\Cleaner;
+use ImrulHasan\WPMC\BackgroundJob;
+use ImrulHasan\WPMC\Cleaner;
 
 final class AjaxHandlers
 {
     public function __construct()
     {
-        add_action('wp_ajax_sia_start_scan', [$this, 'startScan']);
-        add_action('wp_ajax_sia_trash', [$this, 'trashImages']);
-        add_action('wp_ajax_sia_dismiss', [$this, 'dismissImages']);
-        add_action('wp_ajax_sia_scan_status', [$this, 'scanStatus']);
-        add_action('wp_ajax_sia_restore', [$this, 'restoreImages']);
+        add_action('wp_ajax_wpmc_start_scan', [$this, 'startScan']);
+        add_action('wp_ajax_wpmc_trash', [$this, 'trashImages']);
+        add_action('wp_ajax_wpmc_dismiss', [$this, 'dismissImages']);
+        add_action('wp_ajax_wpmc_scan_status', [$this, 'scanStatus']);
+        add_action('wp_ajax_wpmc_restore', [$this, 'restoreImages']);
     }
 
     public function startScan(): void
@@ -66,8 +66,8 @@ final class AjaxHandlers
         $this->verifyRequest('GET');
 
         wp_send_json_success([
-            'status'   => get_option('sia_scan_status', 'idle'),
-            'lastScan' => get_option('sia_last_scan', ''),
+            'status'   => get_option('wpmc_scan_status', 'idle'),
+            'lastScan' => get_option('wpmc_last_scan', ''),
             'stale'    => BackgroundJob::isScanStale(),
         ]);
     }
@@ -82,7 +82,7 @@ final class AjaxHandlers
             ? sanitize_text_field($_GET['nonce'] ?? '')
             : sanitize_text_field($_POST['nonce'] ?? '');
 
-        if (!wp_verify_nonce($nonce, 'sia_admin')) {
+        if (!wp_verify_nonce($nonce, 'wpmc_admin')) {
             wp_send_json_error('Invalid nonce', 403);
         }
     }

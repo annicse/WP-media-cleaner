@@ -1,6 +1,6 @@
 <?php
 
-namespace StemAgency\Sia;
+namespace ImrulHasan\WPMC;
 
 final class Database
 {
@@ -12,22 +12,22 @@ final class Database
 
     public static function resultsTable(): string
     {
-        return self::prefix() . 'sia_results';
+        return self::prefix() . 'wpmc_results';
     }
 
     public static function usageTable(): string
     {
-        return self::prefix() . 'sia_usage';
+        return self::prefix() . 'wpmc_usage';
     }
 
     public static function largeTable(): string
     {
-        return self::prefix() . 'sia_large';
+        return self::prefix() . 'wpmc_large';
     }
 
     public static function deletedTable(): string
     {
-        return self::prefix() . 'sia_deleted';
+        return self::prefix() . 'wpmc_deleted';
     }
 
     public static function createTables(): void
@@ -408,7 +408,7 @@ final class Database
     }
 
     /**
-     * Empty the SIA deletion log table.
+     * Empty the WPMC deletion log table.
      */
     public static function truncateDeletedTable(): void
     {
@@ -418,11 +418,11 @@ final class Database
     }
 
     /**
-     * Attachment IDs SIA has recorded as deleted (deletion log + results status).
+     * Attachment IDs WPMC has recorded as deleted (deletion log + results status).
      *
      * @return int[]
      */
-    public static function getSiaDeletedAttachmentIds(): array
+    public static function getWpmcDeletedAttachmentIds(): array
     {
         global $wpdb;
 

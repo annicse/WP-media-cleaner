@@ -1,14 +1,14 @@
 <?php
 
-namespace StemAgency\Sia;
+namespace ImrulHasan\WPMC;
 
 final class BackgroundJob
 {
-    private const BUILD_INDEX_HOOK = 'sia_build_index';
-    private const SCAN_BATCH_HOOK  = 'sia_scan_batch';
-    private const SCAN_DONE_HOOK   = 'sia_scan_complete';
-    private const RECURRING_HOOK   = 'sia_scheduled_scan';
-    private const GROUP            = 'sia';
+    private const BUILD_INDEX_HOOK = 'wpmc_build_index';
+    private const SCAN_BATCH_HOOK  = 'wpmc_scan_batch';
+    private const SCAN_DONE_HOOK   = 'wpmc_scan_complete';
+    private const RECURRING_HOOK   = 'wpmc_scheduled_scan';
+    private const GROUP            = 'wpmc';
 
     /**
      * How long a scan can sit in "scanning" with no completion before it's
@@ -35,7 +35,7 @@ final class BackgroundJob
             return;
         }
 
-        $status = get_option('sia_scan_status', 'idle');
+        $status = get_option('wpmc_scan_status', 'idle');
         if ($status === 'scanning' && !self::isScanStale()) {
             return;
         }
@@ -46,8 +46,8 @@ final class BackgroundJob
             self::unscheduleAll();
         }
 
-        update_option('sia_scan_status', 'scanning');
-        update_option('sia_scan_started_at', time());
+        update_option('wpmc_scan_status', 'scanning');
+        update_option('wpmc_scan_started_at', time());
 
         Database::truncateForScan();
 
@@ -60,11 +60,11 @@ final class BackgroundJob
      */
     public static function isScanStale(): bool
     {
-        if (get_option('sia_scan_status', 'idle') !== 'scanning') {
+        if (get_option('wpmc_scan_status', 'idle') !== 'scanning') {
             return false;
         }
 
-        $startedAt = (int) get_option('sia_scan_started_at', 0);
+        $startedAt = (int) get_option('wpmc_scan_started_at', 0);
         if ($startedAt <= 0) {
             // Status says "scanning" but we never recorded a start time (e.g. a
             // scan kicked off before this check existed) — treat as stale so it
@@ -76,7 +76,7 @@ final class BackgroundJob
     }
 
     /**
-     * Build usage index, persist to sia_usage, then enqueue scan batches + completion.
+     * Build usage index, persist to wpmc_usage, then enqueue scan batches + completion.
      */
     public static function processBuildIndex(): void
     {
@@ -88,7 +88,7 @@ final class BackgroundJob
         }
 
         $total     = Database::totalImageAttachments();
-        $batchSize = (int) get_option('sia_batch_size', 100);
+        $batchSize = (int) get_option('wpmc_batch_size', 100);
         $batchSize = max($batchSize, 1);
         $batches   = (int) ceil($total / $batchSize);
 
@@ -125,9 +125,9 @@ final class BackgroundJob
         Optimizer::flagLargeFiles();
         Cleaner::cleanupOldBackups();
 
-        update_option('sia_scan_status', 'idle');
-        delete_option('sia_scan_started_at');
-        update_option('sia_last_scan', current_time('mysql'));
+        update_option('wpmc_scan_status', 'idle');
+        delete_option('wpmc_scan_started_at');
+        update_option('wpmc_last_scan', current_time('mysql'));
     }
 
     /**
@@ -140,7 +140,7 @@ final class BackgroundJob
             return;
         }
 
-        $schedule = get_option('sia_scan_schedule', 'monthly');
+        $schedule = get_option('wpmc_scan_schedule', 'monthly');
         if ($schedule === 'off') {
             return;
         }
@@ -169,7 +169,7 @@ final class BackgroundJob
         as_unschedule_all_actions(self::SCAN_DONE_HOOK, [], self::GROUP);
         as_unschedule_all_actions(self::RECURRING_HOOK, [], self::GROUP);
 
-        update_option('sia_scan_status', 'idle');
-        delete_option('sia_scan_started_at');
+        update_option('wpmc_scan_status', 'idle');
+        delete_option('wpmc_scan_started_at');
     }
 }

@@ -1,8 +1,8 @@
-.sia-wrap .nav-tab-wrapper {
+.wpmc-wrap .nav-tab-wrapper {
     margin-bottom: 20px;
 }
 
-.sia-badge {
+.wpmc-badge {
     display: inline-block;
     min-width: 18px;
     padding: 0 6px;
@@ -16,11 +16,11 @@
     margin-left: 4px;
 }
 
-.sia-badge-info {
+.wpmc-badge-info {
     background: #72aee6;
 }
 
-.sia-toolbar {
+.wpmc-toolbar {
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -28,44 +28,44 @@
     gap: 12px;
 }
 
-.sia-toolbar-left,
-.sia-toolbar-right {
+.wpmc-toolbar-left,
+.wpmc-toolbar-right {
     display: flex;
     align-items: center;
     gap: 10px;
 }
 
-.sia-last-scan {
+.wpmc-last-scan {
     color: #646970;
     font-style: italic;
 }
 
-.sia-status.scanning {
+.wpmc-status.scanning {
     color: #dba617;
     font-weight: 600;
 }
 
-.sia-status-stale {
+.wpmc-status-stale {
     color: #b32d2e;
     font-style: italic;
 }
 
-.sia-table .sia-col-thumb {
+.wpmc-table .wpmc-col-thumb {
     width: 70px;
 }
 
-.sia-table .sia-col-thumb img {
+.wpmc-table .wpmc-col-thumb img {
     max-width: 60px;
     max-height: 60px;
     border-radius: 4px;
 }
 
-.sia-empty {
+.wpmc-empty {
     padding: 40px 0;
     text-align: center;
     color: #646970;
 }
 
-.sia-table .check-column {
+.wpmc-table .check-column {
     width: 30px;
 }

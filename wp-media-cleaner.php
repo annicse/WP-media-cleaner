@@ -1,24 +1,28 @@
 <?php
 /**
- * Plugin Name: SIA
+ * Plugin Name: WP Media Cleaner
+ * Plugin URI: https://github.com/imrulhasan/wp-media-cleaner
  * Description: Find and clean up unused images, flag oversized media files.
  * Version: 1.0.0
- * Author: Stem Agency
- * Text Domain: sia
+ * Author: Imrul Hasan
+ * Author URI: https://github.com/imrulhasan
+ * License: GPL-2.0-or-later
+ * License URI: https://www.gnu.org/licenses/gpl-2.0.html
+ * Text Domain: wp-media-cleaner
  * Requires PHP: 8.1
  * Network: true
  */
 
 defined('ABSPATH') || exit;
 
-define('SIA_VERSION', '1.0.0');
-define('SIA_FILE', __FILE__);
-define('SIA_PATH', plugin_dir_path(__FILE__));
-define('SIA_URL', plugin_dir_url(__FILE__));
+define('WPMC_VERSION', '1.0.0');
+define('WPMC_FILE', __FILE__);
+define('WPMC_PATH', plugin_dir_path(__FILE__));
+define('WPMC_URL', plugin_dir_url(__FILE__));
 
-require_once SIA_PATH . 'vendor/autoload.php';
-require_once SIA_PATH . 'vendor/woocommerce/action-scheduler/action-scheduler.php';
+require_once WPMC_PATH . 'vendor/autoload.php';
+require_once WPMC_PATH . 'vendor/woocommerce/action-scheduler/action-scheduler.php';
 
-use StemAgency\Sia\Plugin;
+use ImrulHasan\WPMC\Plugin;
 
 Plugin::instance();

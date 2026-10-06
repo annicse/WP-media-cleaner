@@ -1,19 +1,19 @@
 <?php return array(
     'root' => array(
-        'name' => 'designcontainer/sia',
-        'pretty_version' => '1.0.0+no-version-set',
-        'version' => '1.0.0.0',
-        'reference' => null,
+        'name' => 'imrulhasan/wp-media-cleaner',
+        'pretty_version' => 'dev-main',
+        'version' => 'dev-main',
+        'reference' => 'dbd4348956105659180f5215311161420148ba3a',
         'type' => 'wordpress-plugin',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
         'dev' => true,
     ),
     'versions' => array(
-        'designcontainer/sia' => array(
-            'pretty_version' => '1.0.0+no-version-set',
-            'version' => '1.0.0.0',
-            'reference' => null,
+        'imrulhasan/wp-media-cleaner' => array(
+            'pretty_version' => 'dev-main',
+            'version' => 'dev-main',
+            'reference' => 'dbd4348956105659180f5215311161420148ba3a',
             'type' => 'wordpress-plugin',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),

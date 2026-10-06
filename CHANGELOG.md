@@ -40,7 +40,7 @@ image as "used" whenever there's any doubt — never the other way around.
   `_yoast_wpseo_twitter-image-id`), which use the same underscore convention.
   Before: a custom social-share image could be deleted as "unused" even while
   set as a post's Facebook/Twitter image. Now: a small, explicit, filterable
-  allow-list (`sia_known_underscore_image_meta_keys`) is checked in addition to
+  allow-list (`wpmc_known_underscore_image_meta_keys`) is checked in addition to
   the normal public-key scan — nothing else about the underscore exclusion
   changes, so the false-positive risk it guards against is untouched.
   (`src/Scanner.php`)
@@ -52,22 +52,22 @@ image as "used" whenever there's any doubt — never the other way around.
   any of the existing option-name patterns (`widget_*`, `theme_mods_*`,
   `options_*`). Before: setting a sitewide OG/logo image via TSF was invisible
   to the scanner. Now: `Scanner::indexSeoPluginOptions()` reads known option
-  fields directly (filterable via `sia_seo_plugin_option_sources` for other
+  fields directly (filterable via `wpmc_seo_plugin_option_sources` for other
   SEO plugins). (`src/Scanner.php`)
 
 ### Reliability: a scan can no longer get stuck or lose partial progress
 
 - **Stuck scans now self-heal instead of blocking forever.** Before: starting
-  a scan set `sia_scan_status` to `scanning`, and nothing but a fully completed
+  a scan set `wpmc_scan_status` to `scanning`, and nothing but a fully completed
   scan ever set it back to `idle`. If a background worker crashed or a request
   timed out mid-scan, the site was stuck showing "Scan in progress" forever —
   no button, no CLI reset, no timeout. Now: the start time is recorded
-  (`sia_scan_started_at`), and a scan sitting at `scanning` for more than 45
+  (`wpmc_scan_started_at`), and a scan sitting at `scanning` for more than 45
   minutes is treated as dead. The next scan attempt (button click, monthly
-  cron, or `wp sia scan`) automatically clears the stale state and starts
+  cron, or `wp wpmc scan`) automatically clears the stale state and starts
   fresh; the admin page shows a "previous scan appears stuck" notice and lets
   you restart immediately instead of hiding the button; and a new
-  `wp sia reset-scan` CLI command clears it on demand.
+  `wp wpmc reset-scan` CLI command clears it on demand.
   (`src/BackgroundJob.php`, `src/Admin/AdminPage.php`, `src/Admin/AjaxHandlers.php`,
   `assets/admin.js`, `src/CLI/Commands.php`)
 
@@ -94,28 +94,28 @@ image as "used" whenever there's any doubt — never the other way around.
 
 ### Phase 1 — Plugin rebuild
 
-- Replaced 4 flat PHP files with namespaced class-based architecture (`StemAgency\Sia`)
+- Replaced 4 flat PHP files with namespaced class-based architecture (`ImrulHasan\WPMC`)
 - Fixed all SQL injection vulnerabilities (options_find, delete query, ACF operator precedence)
 - Replaced wp-cron abuse (10s rescheduling) with Action Scheduler for background batching
 - **Multisite**: network activation runs setup per site; `wp_initialize_site` for new sites; per-site backups; CLI `--url` for subsites
 - Built 11 image-usage checks: featured image, post content, ACF meta, ACF blocks, options, widgets, customizer, WooCommerce gallery, site icon/logo, URL in postmeta, URL in post content
-- Admin UI under Tools > SIA with 4 tabs: Unused Images, Large Files, Deleted, Settings
+- Admin UI under Tools > Media Cleaner with 4 tabs: Unused Images, Large Files, Deleted, Settings
 - WP-CLI commands: scan, clean, status, large, deleted, restore, purge
 - Large-file flagging (configurable threshold, default 500KB)
 - Eliminated temp-file caching (Cacher.php) in favor of direct DB inserts
 
 ### Phase 2 — Recovery system
 
-- File backup before every deletion: copies originals + thumbnails to `wp-content/uploads/sia-backups/`
+- File backup before every deletion: copies originals + thumbnails to `wp-content/uploads/wpmc-backups/`
 - `manifest.json` per backup with full metadata, file list, and post URLs
-- `sia_deleted` DB table as permanent deletion log (never auto-purged)
+- `wpmc_deleted` DB table as permanent deletion log (never auto-purged)
 - Deleted tab in admin with clickable post links for page-by-page verification
-- One-click restore from admin UI or `wp sia restore` CLI
+- One-click restore from admin UI or `wp wpmc restore` CLI
 - Configurable backup retention (default 90 days, auto-cleanup after scans)
 
 ### Phase 3 — Scan performance (inverted scanner)
 
 - One-pass index: build “used” set from DB once (featured, content regex, ACF meta, Woo galleries, options/widgets/theme_mods, site identity), then compare attachments to that set instead of per-image DB checks
-- Index persisted to `sia_usage` so async batch jobs use `Database::hasUsage()` only (no shared memory)
+- Index persisted to `wpmc_usage` so async batch jobs use `Database::hasUsage()` only (no shared memory)
 - BackgroundJob: BUILD_INDEX action runs first, then N batch actions, then SCAN_DONE
 - CLI scan: `buildIndex()` once, then batch loop; optional `--deep` flag for slow URL-in-content check on images not in index

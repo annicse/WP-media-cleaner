@@ -1,6 +1,6 @@
 <?php
 
-namespace StemAgency\Sia;
+namespace ImrulHasan\WPMC;
 
 final class Optimizer
 {
@@ -11,7 +11,7 @@ final class Optimizer
     {
         global $wpdb;
 
-        $threshold = (int) get_option('sia_large_threshold', 512000);
+        $threshold = (int) get_option('wpmc_large_threshold', 512000);
 
         $wpdb->query("TRUNCATE TABLE " . Database::largeTable());
 

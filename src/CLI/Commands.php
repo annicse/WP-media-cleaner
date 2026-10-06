@@ -1,17 +1,17 @@
 <?php
 
-namespace StemAgency\Sia\CLI;
+namespace ImrulHasan\WPMC\CLI;
 
-use StemAgency\Sia\BackgroundJob;
-use StemAgency\Sia\Database;
-use StemAgency\Sia\Scanner;
-use StemAgency\Sia\Cleaner;
-use StemAgency\Sia\Optimizer;
+use ImrulHasan\WPMC\BackgroundJob;
+use ImrulHasan\WPMC\Database;
+use ImrulHasan\WPMC\Scanner;
+use ImrulHasan\WPMC\Cleaner;
+use ImrulHasan\WPMC\Optimizer;
 use WP_CLI;
 use WP_CLI\Utils;
 
 /**
- * SIA — Image cleanup and optimization commands.
+ * WP Media Cleaner (WPMC) — Image cleanup and optimization commands.
  */
 final class Commands
 {
@@ -28,9 +28,9 @@ final class Commands
      *
      * ## EXAMPLES
      *
-     *     wp sia scan
-     *     wp sia scan --batch-size=500
-     *     wp sia scan --deep
+     *     wp wpmc scan
+     *     wp wpmc scan --batch-size=500
+     *     wp wpmc scan --deep
      *
      * @when after_wp_load
      */
@@ -49,8 +49,8 @@ final class Commands
         WP_CLI::log("Found {$total} image attachments. Scanning in {$totalBatches} batches of {$batchSize}...");
         WP_CLI::log('');
 
-        update_option('sia_scan_status', 'scanning');
-        update_option('sia_scan_started_at', time());
+        update_option('wpmc_scan_status', 'scanning');
+        update_option('wpmc_scan_started_at', time());
 
         Database::truncateForScan();
 
@@ -103,9 +103,9 @@ final class Commands
         WP_CLI::log('Flagging large files...');
         Optimizer::flagLargeFiles();
 
-        update_option('sia_scan_status', 'idle');
-        delete_option('sia_scan_started_at');
-        update_option('sia_last_scan', current_time('mysql'));
+        update_option('wpmc_scan_status', 'idle');
+        delete_option('wpmc_scan_started_at');
+        update_option('wpmc_last_scan', current_time('mysql'));
 
         $elapsed = round(microtime(true) - $startTime, 1);
         $unused  = Database::countUnused();
@@ -130,9 +130,9 @@ final class Commands
      *
      * ## EXAMPLES
      *
-     *     wp sia clean --dry-run
-     *     wp sia clean --yes
-     *     wp sia clean --force --yes
+     *     wp wpmc clean --dry-run
+     *     wp wpmc clean --yes
+     *     wp wpmc clean --force --yes
      *
      * @when after_wp_load
      */
@@ -143,39 +143,45 @@ final class Commands
         $total  = Database::countUnused();
 
         if ($total === 0) {
-            WP_CLI::success('No unused images to clean. Run "wp sia scan" first.');
+            WP_CLI::success('No unused images to clean. Run "wp wpmc scan" first.');
             return;
         }
 
         $images = Database::getUnusedImages($total, 1);
 
         if ($dryRun) {
-            WP_CLI::log("Dry run: {$total} images would be " . ($force ? 'permanently deleted' : 'trashed') . ":");
+            $action = $force ? 'permanently deleted' : 'moved to trash';
+            WP_CLI::log("Dry run: {$total} image(s) would be {$action}:");
+            WP_CLI::log('');
+
             $rows = [];
             foreach ($images as $img) {
                 $rows[] = [
                     'ID'    => $img->attachment_id,
                     'Title' => $img->post_title ?: '(untitled)',
                     'Size'  => $img->file_size ? size_format($img->file_size) : '—',
-                    'Type'  => $img->post_mime_type ?? '',
+                    'File'  => basename(get_attached_file((int) $img->attachment_id) ?: ''),
                 ];
             }
-            Utils\format_items('table', $rows, ['ID', 'Title', 'Size', 'Type']);
+            Utils\format_items('table', $rows, ['ID', 'Title', 'Size', 'File']);
             return;
         }
 
-        $action = $force ? 'permanently delete' : 'trash';
-        WP_CLI::confirm("About to {$action} {$total} unused images. Continue?", $assocArgs);
+        $prompt = $force
+            ? "Permanently delete {$total} unused images? Backups will be made, but WP trash will be bypassed."
+            : "Move {$total} unused images to trash? Backups will be made.";
 
-        $progress = Utils\make_progress_bar('Cleaning images', $total);
+        WP_CLI::confirm($prompt, $assocArgs);
+
+        $action   = $force ? 'Deleting' : 'Trashing';
+        $progress = Utils\make_progress_bar("{$action} images", $total);
         $deleted  = 0;
 
         foreach ($images as $img) {
             $id = (int) $img->attachment_id;
-            if ($force) {
-                Cleaner::forceDeleteImage($id) && $deleted++;
-            } else {
-                Cleaner::trashImage($id) && $deleted++;
+            $ok = $force ? Cleaner::forceDeleteImage($id) : Cleaner::trashImage($id);
+            if ($ok) {
+                $deleted++;
             }
             $progress->tick();
         }
@@ -185,7 +191,7 @@ final class Commands
     }
 
     /**
-     * Clear SIA recovery data: truncate wp_sia_deleted and delete sia-backups/.
+     * Clear WPMC recovery data: truncate wp_wpmc_deleted and delete wpmc-backups/.
      * Does not touch the WordPress media library or WP trash.
      *
      * ## OPTIONS
@@ -198,9 +204,9 @@ final class Commands
      *
      * ## EXAMPLES
      *
-     *     wp sia empty-trash
-     *     wp sia empty-trash --dry-run
-     *     wp sia empty-trash --yes
+     *     wp wpmc empty-trash
+     *     wp wpmc empty-trash --dry-run
+     *     wp wpmc empty-trash --yes
      *
      * @subcommand empty-trash
      * @when after_wp_load
@@ -211,15 +217,15 @@ final class Commands
         $stats  = Cleaner::getRecoveryStoreStats();
 
         if ($stats['log_rows'] === 0 && $stats['backup_dirs'] === 0) {
-            WP_CLI::success('SIA trash is already empty (no deletion log rows, no backup folders).');
+            WP_CLI::success('WPMC trash is already empty (no deletion log rows, no backup folders).');
             return;
         }
 
-        WP_CLI::log('This clears SIA recovery storage only — not WordPress media or WP trash.');
+        WP_CLI::log('This clears WPMC recovery storage only — not WordPress media or WP trash.');
         WP_CLI::log('');
         WP_CLI::log('Will remove:');
         WP_CLI::log('  - Rows in ' . Database::deletedTable() . ': ' . $stats['log_rows']);
-        WP_CLI::log('  - Backup date folders in sia-backups/: ' . $stats['backup_dirs']);
+        WP_CLI::log('  - Backup date folders in wpmc-backups/: ' . $stats['backup_dirs']);
         WP_CLI::log('  - Approx. backup size: ' . size_format($stats['backup_bytes']));
         WP_CLI::log('  - Path: ' . Cleaner::backupDir());
         WP_CLI::log('');
@@ -230,7 +236,7 @@ final class Commands
         }
 
         WP_CLI::confirm(
-            'Type Y to permanently wipe the SIA deletion log and all sia-backups. Restore will no longer be possible. Continue?',
+            'Type Y to permanently wipe the WPMC deletion log and all wpmc-backups. Restore will no longer be possible. Continue?',
             $assocArgs
         );
 
@@ -250,14 +256,14 @@ final class Commands
      *
      * ## EXAMPLES
      *
-     *     wp sia status
+     *     wp wpmc status
      *
      * @when after_wp_load
      */
     public function status(array $args, array $assocArgs): void
     {
-        $status   = get_option('sia_scan_status', 'idle');
-        $lastScan = get_option('sia_last_scan', 'never');
+        $status   = get_option('wpmc_scan_status', 'idle');
+        $lastScan = get_option('wpmc_last_scan', 'never');
         $total    = Database::totalImageAttachments();
         $unused   = Database::countUnused();
         $large    = Database::countLargeFiles();
@@ -268,7 +274,7 @@ final class Commands
             ['Key' => 'Total image attachments', 'Value' => $total],
             ['Key' => 'Unused images', 'Value' => $unused],
             ['Key' => 'Large files flagged', 'Value' => $large],
-            ['Key' => 'Large file threshold', 'Value' => size_format((int) get_option('sia_large_threshold', 512000))],
+            ['Key' => 'Large file threshold', 'Value' => size_format((int) get_option('wpmc_large_threshold', 512000))],
         ];
 
         Utils\format_items('table', $rows, ['Key', 'Value']);
@@ -281,14 +287,14 @@ final class Commands
      *
      * ## EXAMPLES
      *
-     *     wp sia reset-scan
+     *     wp wpmc reset-scan
      *
      * @subcommand reset-scan
      * @when after_wp_load
      */
     public function reset_scan(array $args, array $assocArgs): void
     {
-        $status = get_option('sia_scan_status', 'idle');
+        $status = get_option('wpmc_scan_status', 'idle');
 
         if ($status !== 'scanning') {
             WP_CLI::success('No scan in progress — nothing to reset.');
@@ -309,8 +315,8 @@ final class Commands
      *
      * ## EXAMPLES
      *
-     *     wp sia large
-     *     wp sia large --format=csv
+     *     wp wpmc large
+     *     wp wpmc large --format=csv
      *
      * @when after_wp_load
      */
@@ -319,7 +325,7 @@ final class Commands
         $total = Database::countLargeFiles();
 
         if ($total === 0) {
-            WP_CLI::success('No large files. Run "wp sia scan" first.');
+            WP_CLI::success('No large files. Run "wp wpmc scan" first.');
             return;
         }
 
@@ -350,8 +356,8 @@ final class Commands
      *
      * ## EXAMPLES
      *
-     *     wp sia deleted
-     *     wp sia deleted --format=json
+     *     wp wpmc deleted
+     *     wp wpmc deleted --format=json
      *
      * @when after_wp_load
      */
@@ -399,7 +405,7 @@ final class Commands
      *
      * ## EXAMPLES
      *
-     *     wp sia restore 1234
+     *     wp wpmc restore 1234
      *
      * @when after_wp_load
      */
@@ -435,15 +441,15 @@ final class Commands
      *
      * ## EXAMPLES
      *
-     *     wp sia purge
-     *     wp sia purge --dry-run
+     *     wp wpmc purge
+     *     wp wpmc purge --dry-run
      *
      * @when after_wp_load
      */
     public function purge(array $args, array $assocArgs): void
     {
         $dryRun    = Utils\get_flag_value($assocArgs, 'dry-run', false);
-        $retention = (int) get_option('sia_backup_retention_days', 90);
+        $retention = (int) get_option('wpmc_backup_retention_days', 90);
         $baseDir   = Cleaner::backupDir();
 
         WP_CLI::log("Retention period: {$retention} days.");
